@@ -1,0 +1,7 @@
+<button
+  type="button"
+  data-cat="<%= name %>"
+  aria-pressed="<%= isActive ? 'true' : 'false' %>"
+  <%= disabled ? 'disabled' : '' %>
+  class="btn btn-sm btn-filter"
+><%= name %> <span class="count"><%= count %></span></button>

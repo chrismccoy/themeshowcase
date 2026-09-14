@@ -1,0 +1,96 @@
+<%- include('partials/shell') %>
+  <div class="max-w-2xl">
+    <% if (errors.length) { %>
+      <div class="notice notice-error" role="alert">
+        <%- include('partials/icon', { name: 'fa-solid fa-circle-exclamation' }) %>
+        <span>
+          <% errors.forEach(function (message, index) { %><%= index ? " " : "" %><%= message %><% }); %>
+        </span>
+      </div>
+    <% } %>
+
+    <form action="<%= action %>" method="post" enctype="multipart/form-data" class="card">
+      <div class="card-body space-y-4">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+
+        <div>
+          <label for="title" class="field-label">Title</label>
+          <input id="title" name="title" type="text" required autocomplete="off" value="<%= values.title %>"
+            class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none" />
+        </div>
+
+        <div>
+          <label for="description" class="field-label">Description</label>
+          <textarea id="description" name="description" rows="3" maxlength="300"
+            class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none"><%= values.description %></textarea>
+          <p class="help">Optional. A sentence or two, shown under the theme name. Up to 300 characters.</p>
+        </div>
+
+        <div>
+          <label for="url" class="field-label">Demo address</label>
+          <input id="url" name="url" type="url" required autocomplete="off" value="<%= values.url %>"
+            placeholder="https://example.test"
+            class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none" />
+        </div>
+
+        <div>
+          <label for="categoryId" class="field-label">Category</label>
+          <select id="categoryId" name="categoryId" required
+            class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none">
+            <% categories.forEach(function (category) { %>
+              <option value="<%= category.id %>" <%= Number(values.categoryId) === category.id ? 'selected' : '' %>>
+                <%= category.name %>
+              </option>
+            <% }); %>
+          </select>
+        </div>
+
+        <div>
+          <span class="field-label">Screenshot</span>
+
+          <%
+            /*
+             * The real chooser sits inside the zone, stretched across it and
+             * invisible, so clicking anywhere opens it and the keyboard still
+             * reaches it. With scripts blocked this is exactly the form it
+             * always was; the script only adds dragging, the name and the
+             * preview.
+             */
+          %>
+          <div id="drop-zone" class="drop-zone" data-max-bytes="<%= maxImageBytes %>" data-max-text="<%= maxImageText %>">
+            <input id="image" name="image" type="file"
+              accept="image/png,image/jpeg,image/webp,image/avif,image/gif"
+              <%= currentImage ? '' : 'required' %>
+              class="drop-input" />
+
+            <img id="drop-preview" src="<%= currentImage || '' %>" alt=""
+              class="drop-preview<%= currentImage ? '' : ' hidden' %>" />
+
+            <div class="drop-words">
+              <p id="drop-name" class="drop-name empty:hidden"></p>
+              <p class="drop-call">
+                <%- include('partials/icon', { name: 'fa-solid fa-arrow-up-from-bracket' }) %>
+                Drag a screenshot here, or click to choose one
+              </p>
+              <p class="drop-terms">
+                PNG, JPEG, WebP, AVIF or GIF, up to <%= maxImageText %>.
+                <%= currentImage ? "Leave this alone to keep the screenshot you have." : "" %>
+              </p>
+            </div>
+          </div>
+
+          <p id="drop-error" class="notice notice-error mt-2 hidden" role="alert">
+            <%- include('partials/icon', { name: 'fa-solid fa-circle-exclamation' }) %>
+            <span id="drop-error-text"></span>
+          </p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2 border-t border-slate-200 px-4 py-3">
+        <button type="submit" class="btn btn-primary">Save</button>
+        <a href="/admin/themes" class="btn btn-quiet">Cancel</a>
+      </div>
+    </form>
+  </div>
+  <script type="module" src="/js/admin-theme-form.js"></script>
+<%- include('partials/shell-foot') %>

@@ -1,0 +1,37 @@
+<aside class="fixed inset-y-0 left-0 z-20 hidden w-[244px] flex-col bg-slate-900 text-slate-300 lg:flex">
+  <a href="/admin" class="flex h-16 items-center gap-2.5 border-b border-white/5 px-5">
+    <span class="grid h-7 w-7 place-items-center rounded-lg bg-gradient-to-br from-brand-500 to-brand-700 text-[13px] text-white">
+      <%- include('icon', { name: brand.icon }) %>
+    </span>
+    <span class="text-base font-semibold text-white"><%= brand.name %></span>
+  </a>
+
+  <nav class="flex-1 overflow-y-auto px-3 py-3.5 text-sm">
+    <p class="px-3 pb-1.5 pt-3.5 text-[10.5px] font-semibold uppercase tracking-[0.09em] text-slate-500">Library</p>
+    <% [
+      { key: "themes", href: "/admin/themes", icon: "fa-solid fa-swatchbook", label: "Themes" },
+      { key: "categories", href: "/admin/categories", icon: "fa-solid fa-tags", label: "Categories" },
+    ].forEach(function (link) { %>
+      <a href="<%= link.href %>" class="flex items-center gap-3 rounded-lg px-3 py-2 <%= active === link.key ? 'bg-brand-600 font-medium text-white' : 'text-slate-300 hover:bg-white/5 hover:text-white' %>">
+        <span class="w-4 text-center text-[13px] <%= active === link.key ? 'text-white' : 'text-slate-400' %>"><%- include('icon', { name: link.icon }) %></span>
+        <span><%= link.label %></span>
+      </a>
+    <% }); %>
+  </nav>
+
+  <div class="border-t border-white/5 p-3">
+    <a href="/" target="_blank" rel="noopener noreferrer"
+      class="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-slate-300 hover:bg-white/5 hover:text-white">
+      <span class="w-4 text-center text-[13px] text-slate-400"><%- include('icon', { name: 'fa-solid fa-arrow-up-right-from-square' }) %></span>
+      <span>View site</span>
+    </a>
+
+    <form action="/admin/logout" method="post">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+      <button type="submit" class="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-slate-300 hover:bg-white/5 hover:text-white">
+        <span class="w-4 text-center text-[13px] text-slate-400"><%- include('icon', { name: 'fa-solid fa-right-from-bracket' }) %></span>
+        <span>Log out</span>
+      </button>
+    </form>
+  </div>
+</aside>

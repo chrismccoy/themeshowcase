@@ -1,0 +1,25 @@
+<%- include('partials/head') %>
+  <div class="admin-centre">
+    <div class="panel">
+      <div class="panel-head">
+        <div class="mx-auto mb-3 grid h-11 w-11 place-items-center rounded-xl bg-red-600 text-[17px] text-white">
+          <%- include('partials/icon', { name: 'fa-solid fa-ban' }) %>
+        </div>
+        <h1 class="text-[17px] font-semibold text-slate-900">Forbidden</h1>
+        <p class="mt-1 text-[13px] text-slate-500">This address cannot reach the dashboard.</p>
+      </div>
+
+      <div class="notice notice-error" role="alert">
+        <%- include('partials/icon', { name: 'fa-solid fa-circle-exclamation' }) %>
+        <span>
+          <%= address %> is not on the allow list.
+        </span>
+      </div>
+
+      <p class="help text-center">
+        Add it to <code class="rounded bg-slate-100 px-1 py-0.5">ADMIN_ALLOWED_IPS</code> and
+        restart, or ask whoever runs this site to.
+      </p>
+    </div>
+  </div>
+<%- include('partials/foot') %>

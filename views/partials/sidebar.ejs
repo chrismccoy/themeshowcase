@@ -1,0 +1,23 @@
+<section class="card" aria-label="Themes">
+  <div class="card-head justify-between">
+    <span id="theme-list-label">Browse</span>
+    <span id="progress" class="text-[11.5px] font-medium tabular-nums text-slate-500"><%= counters.progress %></span>
+  </div>
+
+  <ul
+    id="theme-list"
+    role="listbox"
+    tabindex="0"
+    aria-labelledby="theme-list-label"
+    <% if (active) { %>aria-activedescendant="theme-<%= active.id %>"<% } %>
+    class="theme-list focus:outline-none"
+  ><%- rowsHtml %></ul>
+
+  <div class="list-foot">
+    <span class="hint">Arrow keys move. Enter opens the demo.</span>
+    <span class="flex gap-1.5">
+      <button id="prev-btn" type="button" <%= counters.hasPrev ? '' : 'disabled' %> class="btn btn-quiet btn-sm">Prev</button>
+      <button id="next-btn" type="button" <%= counters.hasNext ? '' : 'disabled' %> class="btn btn-primary btn-sm">Next</button>
+    </span>
+  </div>
+</section>

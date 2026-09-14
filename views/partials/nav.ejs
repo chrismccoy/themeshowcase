@@ -1,0 +1,13 @@
+<header class="pub-header">
+  <div class="pub-header-inner">
+    <span class="wordmark">
+      <span class="tile"><%- include('icon', { name: 'fa-solid fa-swatchbook' }) %></span>
+      Theme Showcase
+    </span>
+    <span class="flex-1"></span>
+    <% links.forEach(function (link) { %>
+      <a href="<%= link.href %>" class="hidden text-[13px] text-slate-500 hover:text-slate-900 md:inline"><%= link.label %></a>
+    <% }); %>
+    <span id="nav-count" class="btn btn-primary btn-sm count-badge"><%= total %> themes</span>
+  </div>
+</header>

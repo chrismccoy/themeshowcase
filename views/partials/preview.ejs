@@ -1,0 +1,72 @@
+<%
+  const demoUrl = active && active.url ? active.url : "";
+  const demoHost = demoUrl.replace(/^https?:\/\//, "");
+  const demoHidden = demoUrl ? "" : " hidden";
+%>
+<section class="shot-frame" aria-label="Preview">
+  <div class="chrome-bar">
+    <span class="lights" aria-hidden="true">
+      <span class="bg-[#ff5f57]"></span>
+      <span class="bg-[#ffbd2e]"></span>
+      <span class="bg-[#28c840]"></span>
+    </span>
+
+    <a
+      id="browser-url-link"
+      class="address"
+      <% if (demoUrl) { %>href="<%= demoUrl %>" target="_blank" rel="noopener noreferrer" aria-label="Open the <%= active.name %> demo in a new tab"<% } %>
+    >
+      <i class="fa-solid fa-lock lock" aria-hidden="true"></i>
+      <span id="browser-url" class="url"><%= demoUrl %></span>
+      <i id="browser-url-icon" class="fa-solid fa-arrow-up-right-from-square go<%= demoHidden %>" aria-hidden="true"></i>
+    </a>
+  </div>
+
+  <div class="viewport-wrap">
+    <div class="viewport">
+      <img
+        id="preview-image"
+        src="<%= active ? (active.image || fallbackImage) : fallbackImage %>"
+        data-fallback="<%= fallbackImage %>"
+        data-transition-ms="180"
+        alt="<%= active ? active.name : '' %>"
+      />
+    </div>
+    <div id="loading-bar" class="loading-bar"></div>
+  </div>
+
+  <div class="shot-body">
+    <h2 id="preview-label"><%= counters.label %></h2>
+    <p id="preview-description" class="sub"><%= active ? active.description : '' %></p>
+
+    <div class="meta-row">
+      <span class="chip">
+        <%- include('icon', { name: 'fa-solid fa-tag' }) %>
+        <span id="preview-cat"><%= active ? active.category : '' %></span>
+      </span>
+      <a
+        id="demo-chip"
+        class="chip<%= demoHidden %>"
+        <% if (demoUrl) { %>href="<%= demoUrl %>" target="_blank" rel="noopener noreferrer"<% } %>
+      >
+        <%- include('icon', { name: 'fa-solid fa-link' }) %>
+        <span id="demo-chip-text"><%= demoHost %></span>
+      </a>
+    </div>
+
+    <div class="act-row">
+      <a
+        id="open-demo"
+        class="btn btn-primary<%= demoHidden %>"
+        <% if (demoUrl) { %>href="<%= demoUrl %>" target="_blank" rel="noopener noreferrer"<% } %>
+      >
+        <%- include('icon', { name: 'fa-solid fa-arrow-up-right-from-square' }) %>
+        Open demo
+      </a>
+      <button id="copy-link" type="button" class="btn btn-quiet<%= demoHidden %>" data-url="<%= demoUrl %>">
+        <%- include('icon', { name: 'fa-solid fa-link' }) %>
+        <span id="copy-link-label">Copy link</span>
+      </button>
+    </div>
+  </div>
+</section>

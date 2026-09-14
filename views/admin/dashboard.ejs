@@ -1,0 +1,20 @@
+<%- include('partials/shell') %>
+  <div class="grid gap-4 sm:grid-cols-2">
+    <a href="/admin/themes" class="card block hover:border-brand-500">
+      <div class="card-body">
+        <p class="kpi-label">Themes</p>
+        <p class="kpi-value"><%= themeCount %></p>
+      </div>
+    </a>
+    <a href="/admin/categories" class="card block hover:border-brand-500">
+      <div class="card-body">
+        <p class="kpi-label">Categories</p>
+        <p class="kpi-value"><%= categoryCount %></p>
+      </div>
+    </a>
+  </div>
+
+  <p class="mt-4 text-sm text-slate-500">
+    Signed in as <strong class="font-medium text-slate-900"><%= adminUser %></strong>.
+  </p>
+<%- include('partials/shell-foot') %>

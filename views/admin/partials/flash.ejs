@@ -1,0 +1,11 @@
+<% if (locals.flash) { %>
+  <%
+    const tone = flash.kind === "warn"
+      ? { css: "notice-warn", icon: "fa-solid fa-triangle-exclamation", role: "alert" }
+      : { css: "notice-ok", icon: "fa-solid fa-circle-check", role: "status" };
+  %>
+  <div class="notice <%= tone.css %>" role="<%= tone.role %>">
+    <%- include('icon', { name: tone.icon }) %>
+    <span><%= flash.message %></span>
+  </div>
+<% } %>

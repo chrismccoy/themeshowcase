@@ -1,0 +1,81 @@
+<%- include('partials/shell') %>
+  <div class="mb-4">
+    <a href="/admin/themes/new" class="btn btn-primary">
+      <%- include('partials/icon', { name: 'fa-solid fa-plus' }) %> Add theme
+    </a>
+  </div>
+
+  <div class="card">
+    <% if (themes.length === 0) { %>
+      <p class="card-empty">No themes yet.</p>
+    <% } else { %>
+      <div class="overflow-x-auto">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Screenshot</th>
+              <th>Title</th>
+              <th>Category</th>
+              <th>Demo</th>
+              <th class="text-center">Order</th>
+              <th class="text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% themes.forEach(function (theme, index) { %>
+              <tr>
+                <% if (confirmId === Number(theme.id)) { %>
+                  <td colspan="6">
+                    <span class="inline-flex flex-wrap items-center gap-2">
+                      <span class="pill pill-amber">
+                        <%- include('partials/icon', { name: 'fa-solid fa-triangle-exclamation' }) %>
+                        Delete <%= theme.name %>? Its screenshot goes too.
+                      </span>
+                      <form action="/admin/themes/<%= theme.id %>/delete" method="post" class="inline">
+                        <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+                        <button type="submit" class="btn btn-danger btn-sm">Yes</button>
+                      </form>
+                      <a href="/admin/themes" class="btn btn-quiet btn-sm">Cancel</a>
+                    </span>
+                  </td>
+                <% } else { %>
+                  <td>
+                    <img src="<%= theme.image %>" alt="" width="64" height="40"
+                      class="h-10 w-16 rounded border border-slate-200 object-cover" />
+                  </td>
+                  <td class="font-medium text-slate-900"><%= theme.name %></td>
+                  <td><span class="chip"><%= theme.category %></span></td>
+                  <td class="font-mono text-xs text-slate-500"><%= theme.url %></td>
+                  <td class="text-center">
+                    <span class="inline-flex gap-1">
+                      <form action="/admin/themes/<%= theme.id %>/move" method="post" class="inline">
+                        <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+                        <input type="hidden" name="direction" value="up" />
+                        <button type="submit" class="btn btn-quiet btn-sm" <%= index === 0 ? 'disabled' : '' %> aria-label="Move <%= theme.name %> up">
+                          <%- include('partials/icon', { name: 'fa-solid fa-arrow-up' }) %>
+                        </button>
+                      </form>
+                      <form action="/admin/themes/<%= theme.id %>/move" method="post" class="inline">
+                        <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+                        <input type="hidden" name="direction" value="down" />
+                        <button type="submit" class="btn btn-quiet btn-sm" <%= index === themes.length - 1 ? 'disabled' : '' %> aria-label="Move <%= theme.name %> down">
+                          <%- include('partials/icon', { name: 'fa-solid fa-arrow-down' }) %>
+                        </button>
+                      </form>
+                    </span>
+                  </td>
+                  <td class="text-right">
+                    <span class="inline-flex gap-1">
+                      <a href="/admin/themes/<%= theme.id %>/edit" class="btn btn-primary btn-sm">Edit</a>
+                      <a href="/admin/themes?confirm=<%= theme.id %>" class="btn btn-danger btn-sm">Delete</a>
+                    </span>
+                  </td>
+                <% } %>
+              </tr>
+            <% }); %>
+          </tbody>
+        </table>
+      </div>
+    <% } %>
+  </div>
+<%- include('partials/shell-foot') %>

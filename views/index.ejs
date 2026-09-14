@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <%- include('partials/head') %>
+  </head>
+  <body class="min-h-screen bg-slate-100 font-sans text-slate-800 antialiased">
+    <%- include('partials/nav', { links: links, total: total }) %>
+    <%- include('partials/hero', { total: total }) %>
+
+    <main id="previewer" class="pub-main">
+      <div class="controls">
+        <div class="pub-head">
+          <p id="filter-meta" class="showing"><%= counters.meta %></p>
+          <div class="search">
+            <%- include('partials/icon', { name: 'fa-solid fa-magnifying-glass' }) %>
+            <input
+              id="search"
+              type="search"
+              autocomplete="off"
+              placeholder="Search themes"
+              aria-label="Search themes"
+              aria-controls="theme-list"
+            />
+          </div>
+        </div>
+        <div id="pill-filters" class="filters"><%- pillsHtml %></div>
+      </div>
+
+      <div class="layout">
+        <%- include('partials/preview', { active: active, counters: counters, fallbackImage: fallbackImage }) %>
+        <%- include('partials/sidebar', { active: active, counters: counters, rowsHtml: rowsHtml, pillsHtml: pillsHtml }) %>
+      </div>
+    </main>
+
+    <%- include('partials/foot') %>
+
+    <script id="__THEMES__" type="application/json" nonce="<%= nonce %>"><%- stateJson %></script>
+    <script type="module" src="/js/main.js"></script>
+  </body>
+</html>

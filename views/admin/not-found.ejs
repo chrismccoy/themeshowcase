@@ -1,0 +1,21 @@
+<%- include('partials/head') %>
+  <div class="admin-centre">
+    <div class="panel text-center">
+      <div class="panel-head">
+        <div class="mx-auto mb-3 grid h-11 w-11 place-items-center rounded-xl bg-slate-200 text-[17px] text-slate-500">
+          <%- include('partials/icon', { name: 'fa-solid fa-magnifying-glass' }) %>
+        </div>
+        <h1 class="text-[17px] font-semibold text-slate-900">Page not found</h1>
+        <p class="mt-1 text-[13px] text-slate-500">
+          There is nothing at that address in the dashboard.
+        </p>
+      </div>
+
+      <% if (signedIn) { %>
+        <a href="/admin" class="btn btn-primary w-full">Back to the dashboard</a>
+      <% } else { %>
+        <a href="/admin/login" class="btn btn-primary w-full">Go to the sign in page</a>
+      <% } %>
+    </div>
+  </div>
+<%- include('partials/foot') %>

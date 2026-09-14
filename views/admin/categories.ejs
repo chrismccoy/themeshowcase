@@ -1,0 +1,71 @@
+<%- include('partials/shell') %>
+  <div class="max-w-2xl space-y-6">
+    <form action="/admin/categories" method="post" class="card">
+      <div class="card-body flex items-end gap-3">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+        <div class="flex-1">
+          <label for="name" class="field-label">New category</label>
+          <input id="name" name="name" type="text" required autocomplete="off" placeholder="Portfolio"
+            class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none" />
+        </div>
+        <button type="submit" class="btn btn-primary">
+          <%- include('partials/icon', { name: 'fa-solid fa-plus' }) %> Add
+        </button>
+      </div>
+    </form>
+
+    <div class="card">
+      <% if (categories.length === 0) { %>
+        <p class="card-empty">No categories yet.</p>
+      <% } else { %>
+        <div class="overflow-x-auto">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th class="text-center">Themes</th>
+                <th class="text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% categories.forEach(function (category) { %>
+                <tr>
+                  <% if (confirmId === category.id) { %>
+                    <td colspan="3">
+                      <span class="inline-flex flex-wrap items-center gap-2">
+                        <span class="pill pill-amber">
+                          <%- include('partials/icon', { name: 'fa-solid fa-triangle-exclamation' }) %>
+                          Delete <%= category.name %>?
+                        </span>
+                        <form action="/admin/categories/<%= category.id %>/delete" method="post" class="inline">
+                          <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+                          <button type="submit" class="btn btn-danger btn-sm">Yes</button>
+                        </form>
+                        <a href="/admin/categories" class="btn btn-quiet btn-sm">Cancel</a>
+                      </span>
+                    </td>
+                  <% } else { %>
+                    <td>
+                      <form action="/admin/categories/<%= category.id %>" method="post" class="flex items-center gap-2">
+                        <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+                        <input name="name" type="text" value="<%= category.name %>" required autocomplete="off"
+                          class="w-full max-w-xs rounded-md border border-slate-300 px-2.5 py-1 text-sm focus:border-brand-500 focus:outline-none" />
+                        <button type="submit" class="btn btn-primary btn-sm">Save</button>
+                      </form>
+                    </td>
+                    <td class="text-center"><span class="pill"><%= category.count %></span></td>
+                    <td class="text-right">
+                      <a href="/admin/categories?confirm=<%= category.id %>" class="btn btn-danger btn-sm">
+                        <%- include('partials/icon', { name: 'fa-solid fa-trash' }) %> Delete
+                      </a>
+                    </td>
+                  <% } %>
+                </tr>
+              <% }); %>
+            </tbody>
+          </table>
+        </div>
+      <% } %>
+    </div>
+  </div>
+<%- include('partials/shell-foot') %>

@@ -1,0 +1,8 @@
+<li
+  id="theme-<%= theme.id %>"
+  role="option"
+  aria-selected="<%= isActive ? 'true' : 'false' %>"
+  data-id="<%= theme.id %>"
+  tabindex="-1"
+  class="theme-row"
+><% if (theme.image) { %><img class="thumb" src="<%= theme.image %>" alt="" loading="lazy" /><% } else { %><span class="thumb"></span><% } %><span class="min-w-0 flex-1"><span class="name"><%= theme.name %></span><span class="cat"><%= theme.category %></span></span></li>
