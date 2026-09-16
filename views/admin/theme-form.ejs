@@ -57,10 +57,50 @@
              * preview.
              */
           %>
+          <input type="hidden" name="themeId" value="<%= values.themeId || '' %>" />
+
+          <% if (screenshotEnabled) { %>
+            <div class="mode-switch" role="group" aria-label="How to get the screenshot">
+              <label class="mode-choice">
+                <input id="mode-upload" class="sr-only" type="radio" name="mode" value="upload"
+                  <%= values.mode === 'generate' ? '' : 'checked' %> />
+                <%- include('partials/icon', { name: 'fa-solid fa-arrow-up-from-bracket' }) %>
+                Upload a picture
+              </label>
+              <label class="mode-choice">
+                <input id="mode-generate" class="sr-only" type="radio" name="mode" value="generate"
+                  <%= values.mode === 'generate' ? 'checked' : '' %> />
+                <%- include('partials/icon', { name: 'fa-solid fa-camera' }) %>
+                Generate from a web address
+              </label>
+            </div>
+
+            <div id="generate-panel" class="<%= values.mode === 'generate' ? '' : 'hidden' %> mb-3 space-y-2">
+              <label for="capture-url" class="field-label">Address to capture</label>
+              <input id="capture-url" name="captureUrl" type="url" autocomplete="off"
+                value="<%= values.captureUrl || values.url %>"
+                class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none" />
+              <p class="help">
+                Usually the demo address. The server opens the page and takes the picture.
+              </p>
+              <button id="generate-button" type="submit" formaction="/admin/themes/screenshot" formnovalidate
+                class="btn btn-quiet">
+                <%- include('partials/icon', { name: 'fa-solid fa-camera' }) %>
+                Generate screenshot
+              </button>
+
+              <img id="capture-preview" src="<%= values.mode === 'generate' && currentImage ? currentImage : '' %>" alt=""
+                class="drop-preview<%= values.mode === 'generate' && currentImage ? '' : ' hidden' %>" />
+            </div>
+
+            <input id="generated-file" type="hidden" name="generatedFile" value="<%= values.generatedFile || '' %>" />
+          <% } %>
+
+          <div id="upload-panel" class="<%= values.mode === 'generate' ? 'hidden' : '' %>">
           <div id="drop-zone" class="drop-zone" data-max-bytes="<%= maxImageBytes %>" data-max-text="<%= maxImageText %>">
             <input id="image" name="image" type="file"
               accept="image/png,image/jpeg,image/webp,image/avif,image/gif"
-              <%= currentImage ? '' : 'required' %>
+              <%= values.mode === 'generate' || currentImage || values.generatedFile ? '' : 'required' %>
               class="drop-input" />
 
             <img id="drop-preview" src="<%= currentImage || '' %>" alt=""
@@ -77,6 +117,7 @@
                 <%= currentImage ? "Leave this alone to keep the screenshot you have." : "" %>
               </p>
             </div>
+          </div>
           </div>
 
           <p id="drop-error" class="notice notice-error mt-2 hidden" role="alert">

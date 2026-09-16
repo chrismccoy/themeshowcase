@@ -4,7 +4,7 @@
 
 import { describe, it, beforeEach, after } from "node:test";
 import assert from "node:assert/strict";
-import { mkdtempSync, rmSync, existsSync, writeFileSync, readdirSync } from "node:fs";
+import { mkdtempSync, rmSync, existsSync, writeFileSync, readdirSync, mkdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import request from "supertest";
@@ -392,5 +392,135 @@ describe("what the public page shows", () => {
     await upload("/admin/themes", { title: "Dune", url: "https://dune.test", categoryId: 1 });
     const res = await request(app).get("/").expect(200);
     assert.ok(res.text.includes("Dune"));
+  });
+});
+
+describe("saving a generated screenshot", () => {
+  function pending() {
+    const name = `${"ab".repeat(16)}.png`;
+    const dir = path.join(uploadDir, "tmp");
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(path.join(dir, name), PNG);
+    return name;
+  }
+
+  it("keeps a generated screenshot when a theme is added", async () => {
+    const name = pending();
+
+    await upload(
+      "/admin/themes",
+      {
+        title: "Delta",
+        url: "https://delta.test",
+        categoryId: "1",
+        description: "",
+        mode: "generate",
+        generatedFile: name,
+      },
+      null
+    ).expect(302);
+
+    const listed = themes.list().find((theme) => theme.name === "Delta");
+    assert.ok(listed, "the theme was saved");
+
+    const added = themes.findById(listed.id);
+    assert.match(added.imageFile, /^[0-9a-f]{32}\.png$/);
+    assert.equal(existsSync(path.join(uploadDir, added.imageFile)), true);
+    assert.equal(existsSync(path.join(uploadDir, "tmp", name)), false);
+  });
+
+  it("replaces the screenshot of an existing theme", async () => {
+    const before = themes.findById(1).imageFile;
+    const name = pending();
+
+    await upload(
+      "/admin/themes/1",
+      {
+        title: "Aurora",
+        url: "https://aurora.test",
+        categoryId: "1",
+        description: "",
+        mode: "generate",
+        generatedFile: name,
+      },
+      null
+    ).expect(302);
+
+    const after = themes.findById(1).imageFile;
+    assert.notEqual(after, before);
+    assert.equal(existsSync(path.join(uploadDir, before)), false);
+    assert.equal(existsSync(path.join(uploadDir, after)), true);
+  });
+
+  it("refuses a generated name it never handed out", async () => {
+    const res = await upload(
+      "/admin/themes",
+      {
+        title: "Echo",
+        url: "https://echo.test",
+        categoryId: "1",
+        description: "",
+        mode: "generate",
+        generatedFile: "../../themes.db",
+      },
+      null
+    ).expect(200);
+
+    assert.match(res.text, /screenshot/i);
+    assert.equal(
+      themes.list().some((theme) => theme.name === "Echo"),
+      false
+    );
+  });
+
+  it("keeps the screenshot an edited theme already has when nothing new arrives", async () => {
+    const before = themes.findById(1).imageFile;
+
+    await upload(
+      "/admin/themes/1",
+      {
+        title: "Aurora renamed",
+        url: "https://aurora.test",
+        categoryId: "1",
+        description: "",
+        mode: "generate",
+        generatedFile: "",
+      },
+      null
+    ).expect(302);
+
+    assert.equal(themes.findById(1).imageFile, before);
+    assert.equal(themes.findById(1).title, "Aurora renamed");
+  });
+
+  it("still takes an uploaded picture when the mode is upload", async () => {
+    await upload("/admin/themes", {
+      title: "Foxtrot",
+      url: "https://foxtrot.test",
+      categoryId: "1",
+      description: "",
+      mode: "upload",
+    }).expect(302);
+
+    const listed = themes.list().find((theme) => theme.name === "Foxtrot");
+    assert.ok(listed);
+    assert.equal(existsSync(path.join(uploadDir, themes.findById(listed.id).imageFile)), true);
+  });
+
+  it("ignores a waiting capture when the mode is upload", async () => {
+    const name = pending();
+
+    await upload("/admin/themes", {
+      title: "Golf",
+      url: "https://golf.test",
+      categoryId: "1",
+      description: "",
+      mode: "upload",
+      generatedFile: name,
+    }).expect(302);
+
+    const added = themes.list().find((theme) => theme.name === "Golf");
+    assert.ok(added);
+    assert.equal(existsSync(path.join(uploadDir, "tmp", name)), true);
   });
 });

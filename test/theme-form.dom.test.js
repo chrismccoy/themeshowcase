@@ -190,3 +190,36 @@ describe("the form the current screenshot belongs to", () => {
     assert.equal(el("drop-preview").getAttribute("src"), "/media/theme/1");
   });
 });
+
+describe("the upload and generate choice", () => {
+  it("offers both ways to get a screenshot, with upload chosen", () => {
+    assert.equal(el("mode-upload").checked, true);
+    assert.equal(el("mode-generate").checked, false);
+    assert.equal(el("mode-upload").name, "mode");
+    assert.equal(el("mode-generate").name, "mode");
+  });
+
+  it("hides the generate panel until it is chosen", () => {
+    assert.equal(el("generate-panel").classList.contains("hidden"), true);
+  });
+
+  it("points the generate button at the capture route", () => {
+    assert.equal(el("generate-button").getAttribute("formaction"), "/admin/themes/screenshot");
+    assert.equal(el("generate-button").hasAttribute("formnovalidate"), true);
+  });
+
+  it("carries an empty theme id on the add form", () => {
+    assert.equal(document.querySelector('input[name="themeId"]').value, "");
+  });
+
+  it("requires a file while no capture is waiting", () => {
+    assert.equal(el("image").hasAttribute("required"), true);
+    assert.equal(el("generated-file").value, "");
+  });
+
+  it("starts the capture address from the demo address on the edit form", async () => {
+    await openForm("/admin/themes/1/edit");
+    assert.equal(el("capture-url").value, el("url").value);
+    assert.equal(document.querySelector('input[name="themeId"]').value, "1");
+  });
+});

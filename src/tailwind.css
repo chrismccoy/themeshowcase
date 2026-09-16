@@ -102,6 +102,22 @@
   @apply mb-[22px] text-center;
 }
 
+.mode-switch {
+  @apply mb-3 flex flex-wrap gap-2;
+}
+.mode-choice {
+  @apply flex cursor-pointer items-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-600;
+}
+.mode-choice:hover {
+  @apply border-slate-400 bg-slate-50;
+}
+.mode-choice:has(input:checked) {
+  @apply border-brand-600 bg-brand-600 text-white;
+}
+.mode-choice:has(input:focus-visible) {
+  @apply ring-2 ring-brand-500 ring-offset-2;
+}
+
 .drop-zone {
   @apply relative flex min-h-[140px] cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-slate-300 bg-slate-50 px-4 py-5 text-center;
 }

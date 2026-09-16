@@ -16,7 +16,8 @@
     "ejs": "^6.0.0",
     "express": "^5.2.1",
     "helmet": "^8.3.0",
-    "multer": "^2.3.0"
+    "multer": "^2.3.0",
+    "pageres": "^9.0.0"
   },
   "devDependencies": {
     "autoprefixer": "^10.6.0",

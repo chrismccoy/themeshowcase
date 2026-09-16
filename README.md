@@ -13,6 +13,9 @@ A website for showing off WordPress themes. Visitors pick a theme from a list, s
 * A dashboard with a password for adding, editing, reordering and deleting themes and categories.
 * A theme holds a title, a website, a category, a screenshot, and an optional description of up to 300 characters shown under its name.
 * Screenshots are dragged onto the form or picked from your device, and you see the picture before saving it.
+* A screenshot is either uploaded or generated. Generating opens an address in a headless browser on the server and takes the picture, and you see it before you save.
+* Generating refuses addresses inside the server's own network, and checks every redirect on the way.
+* Generating needs Chrome, which `npm install` fetches. Set `SCREENSHOT_ENABLED=false` where it cannot run, and the choice disappears from the form.
 * Deleting a theme deletes its screenshot file as well.
 * A category with themes cannot be deleted
 * Themes are put in order with up and down arrows, and that is the order visitors see.

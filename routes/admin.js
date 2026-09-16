@@ -17,14 +17,20 @@ import { createDashboardController } from "../controllers/admin/dashboard.js";
 import { createFlash } from "../lib/flash.js";
 import { createCategoriesController } from "../controllers/admin/categories.js";
 import { createThemesController } from "../controllers/admin/themes.js";
+import { createScreenshotController } from "../controllers/admin/screenshot.js";
+import { createThemeFormView } from "../controllers/admin/theme-form-view.js";
+import { createTempMediaHandler } from "../controllers/media.js";
 import { createUpload } from "../middleware/upload.js";
+import { createUrlGuard } from "../lib/safe-url.js";
+import { createTempShots } from "../lib/temp-shots.js";
+import { createCapture } from "../lib/screenshot.js";
 
 const rootDir = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 /**
  * Builds the router mounted at /admin.
  */
-export function createAdminRouter({ config, themes, categories }) {
+export function createAdminRouter({ config, themes, categories, capture }) {
   const router = express.Router();
 
   const sessions = createSessions({
@@ -45,6 +51,12 @@ export function createAdminRouter({ config, themes, categories }) {
 
   const uploadDir = path.resolve(rootDir, config.uploadDir);
   const upload = createUpload({ uploadDir, maxBytes: config.maxImageBytes });
+
+  const tempShots = createTempShots({
+    uploadDir,
+    ttlMinutes: config.screenshot.tempTtlMinutes,
+  });
+
   const themesController = createThemesController({
     themes,
     categories,
@@ -52,6 +64,27 @@ export function createAdminRouter({ config, themes, categories }) {
     upload,
     uploadDir,
     maxImageBytes: config.maxImageBytes,
+    screenshotEnabled: config.screenshot.enabled,
+    tempShots,
+  });
+
+  const screenshot = createScreenshotController({
+    guard: createUrlGuard(),
+    capture:
+      capture ??
+      createCapture({
+        width: config.screenshot.width,
+        height: config.screenshot.height,
+        timeoutMs: config.screenshot.timeoutMs,
+      }),
+    tempShots,
+    renderForm: createThemeFormView({
+      categories,
+      maxImageBytes: config.maxImageBytes,
+      screenshotEnabled: config.screenshot.enabled,
+    }),
+    maxImageBytes: config.maxImageBytes,
+    themes,
   });
 
   router.use(adminLocals(config));
@@ -80,6 +113,14 @@ export function createAdminRouter({ config, themes, categories }) {
   router.post("/categories/:id", requireAdmin(sessions), categoriesController.rename);
   router.post("/categories/:id/delete", requireAdmin(sessions), categoriesController.remove);
 
+  router.post("/themes/screenshot", requireAdmin(sessions), upload.middleware, (req, res, next) => {
+    if (!config.screenshot.enabled) {
+      upload.discard(req.file);
+      return res.status(404).type("txt").send("Not found");
+    }
+    return screenshot(req, res, next);
+  });
+
   router.get("/themes", requireAdmin(sessions), themesController.list);
   router.get("/themes/new", requireAdmin(sessions), themesController.newForm);
   router.post("/themes", requireAdmin(sessions), upload.middleware, themesController.create);
@@ -92,5 +133,10 @@ export function createAdminRouter({ config, themes, categories }) {
     notFound("admin/not-found", (req) => ({ signedIn: isSignedIn(sessions, req), title: "Not found" }))
   );
 
-  return { router, sessions };
+  return {
+    router,
+    sessions,
+    requireSignedIn: requireAdmin(sessions),
+    tempMedia: createTempMediaHandler({ tempShots }),
+  };
 }

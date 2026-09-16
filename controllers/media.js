@@ -32,6 +32,28 @@ function sendPlaceholder(res) {
 }
 
 /**
+ * Builds the handler for `GET /media/tmp/:name`, the pending capture shown on
+ * the form before it is saved.
+ */
+export function createTempMediaHandler({ tempShots }) {
+  return function serveTempImage(req, res) {
+    const name = String(req.params.name ?? "");
+
+    if (!tempShots.isValidName(name)) {
+      return res.status(404).set("Cache-Control", "no-store").type("txt").send("Not found");
+    }
+
+    res.set("Cache-Control", "no-store");
+
+    return res.sendFile(tempShots.pathOf(name), (error) => {
+      if (error && !res.headersSent) {
+        res.status(404).set("Cache-Control", "no-store").type("txt").send("Not found");
+      }
+    });
+  };
+}
+
+/**
  * Builds the handler for `GET /media/theme/:id`.
  */
 export function createMediaHandler({ config, themes }) {

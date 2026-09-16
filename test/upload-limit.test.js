@@ -66,7 +66,10 @@ beforeEach(async () => {
     .split(";")[0];
 });
 
-const filesIn = () => readdirSync(uploadDir);
+const filesIn = () =>
+  readdirSync(uploadDir, { withFileTypes: true })
+    .filter((entry) => entry.isFile())
+    .map((entry) => entry.name);
 
 function send(bytes) {
   const contents = Buffer.concat([PNG, Buffer.alloc(Math.max(0, bytes - PNG.length))]);

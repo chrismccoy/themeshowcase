@@ -4,7 +4,7 @@
 
 import fs from "node:fs";
 import path from "node:path";
-import { humanBytes } from "../../shared/bytes.js";
+import { createThemeFormView } from "./theme-form-view.js";
 
 /**
  * Keeps only an address this app is allowed to send to
@@ -30,7 +30,11 @@ export function createThemesController({
   upload,
   uploadDir,
   maxImageBytes,
+  screenshotEnabled,
+  tempShots,
 }) {
+  const renderForm = createThemeFormView({ categories, maxImageBytes, screenshotEnabled });
+
   /**
    * Removes a stored screenshot, if it is still there.
    */
@@ -71,25 +75,39 @@ export function createThemesController({
 
     return {
       errors,
-      values: { title, url: url ?? String(body?.url ?? ""), categoryId, description },
+      values: {
+        title,
+        url: url ?? String(body?.url ?? ""),
+        categoryId,
+        description,
+        mode: body?.mode === "generate" ? "generate" : "upload",
+        captureUrl: String(body?.captureUrl ?? ""),
+        generatedFile: String(body?.generatedFile ?? ""),
+        themeId: String(body?.themeId ?? ""),
+      },
     };
   }
 
   /**
-   * Renders the form
+   * Turns the chosen way of getting a picture into a stored file name.
    */
-  function renderForm(res, { action, values, errors, currentImage, title }) {
-    res.locals.active = "themes";
-    return res.render("admin/theme-form", {
-      title,
-      action,
-      values,
-      errors,
-      currentImage,
-      categories: categories.list(),
-      maxImageBytes,
-      maxImageText: humanBytes(maxImageBytes),
-    });
+  function screenshotFor(values, req, { required }) {
+    if (values.mode === "generate") {
+      upload.discard(req.file);
+
+      const kept = tempShots.promote(values.generatedFile);
+      if (kept) return { imageFile: kept, error: null };
+
+      return {
+        imageFile: undefined,
+        error: required
+          ? "Generate a screenshot before saving, or switch back to uploading one."
+          : null,
+      };
+    }
+
+    if (req.file && req.uploadType) return { imageFile: upload.keep(req.file), error: null };
+    return { imageFile: undefined, error: null };
   }
 
   /**
@@ -124,7 +142,7 @@ export function createThemesController({
    */
   function create(req, res) {
     const { errors, values } = check(req.body);
-    if (req.uploadError) errors.push(req.uploadError);
+    if (req.uploadError && values.mode !== "generate") errors.push(req.uploadError);
 
     if (errors.length) {
       upload.discard(req.file);
@@ -137,7 +155,19 @@ export function createThemesController({
       });
     }
 
-    const imageFile = upload.keep(req.file);
+    const picture = screenshotFor(values, req, { required: true });
+
+    if (picture.error || !picture.imageFile) {
+      return renderForm(res, {
+        title: "Add theme",
+        action: "/admin/themes",
+        values,
+        errors: [picture.error ?? "A theme needs a screenshot."],
+        currentImage: null,
+      });
+    }
+
+    const imageFile = picture.imageFile;
 
     try {
       themes.create({ ...values, imageFile });
@@ -170,6 +200,7 @@ export function createThemesController({
         url: theme.url,
         categoryId: theme.categoryId,
         description: theme.description,
+        themeId: String(theme.id),
       },
       errors: [],
       currentImage: `/media/theme/${theme.id}`,
@@ -188,7 +219,11 @@ export function createThemesController({
 
     const { errors, values } = check(req.body);
 
-    if (req.uploadError && req.uploadError !== "Please choose a screenshot.") {
+    if (
+      req.uploadError &&
+      req.uploadError !== "Please choose a screenshot." &&
+      values.mode !== "generate"
+    ) {
       errors.push(req.uploadError);
     }
 
@@ -203,12 +238,23 @@ export function createThemesController({
       });
     }
 
-    const replacing = Boolean(req.file && req.uploadType);
-    const imageFile = replacing ? upload.keep(req.file) : undefined;
+    const picture = screenshotFor(values, req, { required: false });
+
+    if (picture.error) {
+      return renderForm(res, {
+        title: "Edit theme",
+        action: `/admin/themes/${theme.id}`,
+        values,
+        errors: [picture.error],
+        currentImage: `/media/theme/${theme.id}`,
+      });
+    }
+
+    const imageFile = picture.imageFile;
 
     themes.update(theme.id, { ...values, imageFile });
 
-    if (replacing) removeFile(theme.imageFile);
+    if (imageFile) removeFile(theme.imageFile);
 
     return back(res, `Theme ${values.title} saved.`);
   }

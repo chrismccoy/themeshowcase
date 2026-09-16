@@ -130,3 +130,43 @@ describe("loadConfig", () => {
     assert.equal(loadConfig({ ...ADMIN, NODE_ENV: "production" }).isProduction, true);
   });
 });
+
+describe("screenshot settings", () => {
+  it("has sensible defaults", () => {
+    const config = loadConfig(ADMIN);
+    assert.deepEqual(config.screenshot, {
+      enabled: true,
+      timeoutMs: 20000,
+      width: 1280,
+      height: 1024,
+      tempTtlMinutes: 60,
+    });
+  });
+
+  it("reads the settings from the environment", () => {
+    const config = loadConfig({
+      ...ADMIN,
+      SCREENSHOT_ENABLED: "false",
+      SCREENSHOT_TIMEOUT_MS: "5000",
+      SCREENSHOT_WIDTH: "800",
+      SCREENSHOT_HEIGHT: "600",
+      SCREENSHOT_TEMP_TTL_MINUTES: "5",
+    });
+    assert.equal(config.screenshot.enabled, false);
+    assert.equal(config.screenshot.timeoutMs, 5000);
+    assert.equal(config.screenshot.width, 800);
+    assert.equal(config.screenshot.height, 600);
+    assert.equal(config.screenshot.tempTtlMinutes, 5);
+  });
+
+  it("refuses a timeout that is not a positive whole number", () => {
+    assert.throws(
+      () => loadConfig({ ...ADMIN, SCREENSHOT_TIMEOUT_MS: "0" }),
+      /SCREENSHOT_TIMEOUT_MS/
+    );
+  });
+
+  it("refuses an on or off setting that is neither", () => {
+    assert.throws(() => loadConfig({ ...ADMIN, SCREENSHOT_ENABLED: "maybe" }), /SCREENSHOT_ENABLED/);
+  });
+});

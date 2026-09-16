@@ -27,6 +27,14 @@ const DEFAULT_UPLOAD_DIR = "data/uploads";
 const DEFAULT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 
 /**
+ * How a captured screenshot is taken, and how long an abandoned one is kept.
+ */
+const DEFAULT_SCREENSHOT_TIMEOUT_MS = 20000;
+const DEFAULT_SCREENSHOT_WIDTH = 1280;
+const DEFAULT_SCREENSHOT_HEIGHT = 1024;
+const DEFAULT_SCREENSHOT_TEMP_TTL_MINUTES = 60;
+
+/**
  * How long a session lasts, in hours, counted from when it started.
  */
 const DEFAULT_SESSION_TTL_HOURS = 168;
@@ -132,6 +140,17 @@ function readPositiveIntOrThrow(env, name, fallback) {
 }
 
 /**
+ * Reads an on or off setting, where anything unset counts as the fallback.
+ */
+function readFlag(env, name, fallback) {
+  const raw = env[name];
+  if (raw === undefined || raw === "") return fallback;
+  if (raw === "true" || raw === "1") return true;
+  if (raw === "false" || raw === "0") return false;
+  throw new Error(`${name} must be true or false, received "${raw}"`);
+}
+
+/**
  * Reads a required setting
  */
 function readRequired(env, name, hint) {
@@ -215,6 +234,17 @@ export function loadConfig(env = process.env) {
     brand: {
       name: env.BRAND_NAME || DEFAULT_BRAND_NAME,
       icon: env.BRAND_ICON || DEFAULT_BRAND_ICON,
+    },
+    screenshot: {
+      enabled: readFlag(env, "SCREENSHOT_ENABLED", true),
+      timeoutMs: readPositiveIntOrThrow(env, "SCREENSHOT_TIMEOUT_MS", DEFAULT_SCREENSHOT_TIMEOUT_MS),
+      width: readPositiveIntOrThrow(env, "SCREENSHOT_WIDTH", DEFAULT_SCREENSHOT_WIDTH),
+      height: readPositiveIntOrThrow(env, "SCREENSHOT_HEIGHT", DEFAULT_SCREENSHOT_HEIGHT),
+      tempTtlMinutes: readPositiveIntOrThrow(
+        env,
+        "SCREENSHOT_TEMP_TTL_MINUTES",
+        DEFAULT_SCREENSHOT_TEMP_TTL_MINUTES
+      ),
     },
     databaseFile: env.DATABASE_FILE || DEFAULT_DATABASE_FILE,
     maxImageBytes: readPositiveIntOrThrow(env, "MAX_IMAGE_BYTES", DEFAULT_MAX_IMAGE_BYTES),
