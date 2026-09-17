@@ -49,8 +49,8 @@ async function build({ enabled = true, capture } = {}) {
     categories: createCategoryRepository(db),
     capture:
       capture ??
-      (async (url, destDir, name) => {
-        captured.push({ url, destDir, name });
+      (async (url, destDir, name, options) => {
+        captured.push({ url, destDir, name, options });
         fs.writeFileSync(path.join(destDir, name), PNG);
       }),
   });
@@ -136,12 +136,41 @@ describe("POST /admin/themes/screenshot", () => {
     assert.equal(fs.existsSync(path.join(uploadDir, "tmp", res.body.generatedFile)), true);
   });
 
+  it("captures the whole page when the form asks for it", async () => {
+    await build();
+
+    await shoot({ fullPage: "on" }).set("Accept", "application/json").expect(200);
+
+    assert.equal(captured[0].options.fullPage, true);
+  });
+
+  it("crops to the viewport when the form leaves the box unticked", async () => {
+    await build();
+
+    await shoot().set("Accept", "application/json").expect(200);
+
+    assert.equal(captured[0].options.fullPage, false);
+  });
+
   it("re-renders the form with the capture kept when scripts are not running", async () => {
     await build();
     const res = await shoot().expect(200);
 
     assert.match(res.text, /name="generatedFile" value="[0-9a-f]{32}\.png"/);
     assert.match(res.text, /value="Aurora"/);
+  });
+
+  it("keeps the whole-page choice when the form comes back", async () => {
+    await build();
+
+    const ticked = await shoot({ fullPage: "on" }).expect(200);
+    const unticked = await shoot().expect(200);
+
+    const boxOf = (html) =>
+      new JSDOM(html).window.document.getElementById("capture-full-page");
+
+    assert.equal(boxOf(ticked.text).checked, true);
+    assert.equal(boxOf(unticked.text).checked, false);
   });
 
   it("re-renders with the drop zone put away and the capture shown", async () => {

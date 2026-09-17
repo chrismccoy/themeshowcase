@@ -4,7 +4,8 @@
 
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { createCapture, lendErrorsNamespace } from "../lib/screenshot.js";
+import { createCapture, lendErrorsNamespace, sourceOptions } from "../lib/screenshot.js";
+import { FLATTEN_STICKY } from "../lib/flatten-sticky.js";
 import { createUrlGuard } from "../lib/safe-url.js";
 
 function replyWith(...steps) {
@@ -46,6 +47,7 @@ describe("createCapture", () => {
         width: 1280,
         height: 1024,
         timeoutMs: 1000,
+        fullPage: true,
       },
     ]);
   });
@@ -145,6 +147,32 @@ describe("createCapture", () => {
     assert.equal(seen[0].timeoutMs, 1000);
   });
 
+  it("asks for the whole page unless told otherwise", async () => {
+    const seen = [];
+    const capture = createCapture({
+      ...settings,
+      fetchImpl: replyWith({ status: 200 }),
+      shoot: async (options) => seen.push(options),
+    });
+
+    await capture("https://example.test/", "/tmp/dest", "abc.png");
+
+    assert.equal(seen[0].fullPage, true);
+  });
+
+  it("crops to the viewport when the whole page is not wanted", async () => {
+    const seen = [];
+    const capture = createCapture({
+      ...settings,
+      fetchImpl: replyWith({ status: 200 }),
+      shoot: async (options) => seen.push(options),
+    });
+
+    await capture("https://example.test/", "/tmp/dest", "abc.png", { fullPage: false });
+
+    assert.equal(seen[0].fullPage, false);
+  });
+
   it("reports a browser that will not run", async () => {
     const capture = createCapture({
       ...settings,
@@ -179,5 +207,15 @@ describe("lendErrorsNamespace", () => {
     lendErrorsNamespace(puppeteer);
 
     assert.equal(puppeteer.default.errors, theirs);
+  });
+});
+
+describe("sourceOptions", () => {
+  it("pins floating bars down for a whole-page shot", () => {
+    assert.deepEqual(sourceOptions(true), { crop: false, script: FLATTEN_STICKY });
+  });
+
+  it("leaves a cropped page as its visitors see it", () => {
+    assert.deepEqual(sourceOptions(false), { crop: true, script: undefined });
   });
 });

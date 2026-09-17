@@ -217,6 +217,12 @@ describe("the upload and generate choice", () => {
     assert.equal(el("generated-file").value, "");
   });
 
+  it("offers the whole page by default", () => {
+    const box = el("capture-full-page");
+    assert.equal(box.getAttribute("name"), "fullPage");
+    assert.equal(box.checked, true);
+  });
+
   it("starts the capture address from the demo address on the edit form", async () => {
     await openForm("/admin/themes/1/edit");
     assert.equal(el("capture-url").value, el("url").value);

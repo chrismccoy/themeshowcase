@@ -48,15 +48,6 @@
         <div>
           <span class="field-label">Screenshot</span>
 
-          <%
-            /*
-             * The real chooser sits inside the zone, stretched across it and
-             * invisible, so clicking anywhere opens it and the keyboard still
-             * reaches it. With scripts blocked this is exactly the form it
-             * always was; the script only adds dragging, the name and the
-             * preview.
-             */
-          %>
           <input type="hidden" name="themeId" value="<%= values.themeId || '' %>" />
 
           <% if (screenshotEnabled) { %>
@@ -83,6 +74,16 @@
               <p class="help">
                 Usually the demo address. The server opens the page and takes the picture.
               </p>
+              <label for="capture-full-page" class="flex items-center gap-2 text-sm text-slate-700">
+                <input id="capture-full-page" name="fullPage" type="checkbox"
+                  class="h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500"
+                  <%= values.fullPage === false ? '' : 'checked' %> />
+                Capture the whole page
+              </label>
+              <p class="help">
+                Untick to keep only what fits on one screen.
+              </p>
+
               <button id="generate-button" type="submit" formaction="/admin/themes/screenshot" formnovalidate
                 class="btn btn-quiet">
                 <%- include('partials/icon', { name: 'fa-solid fa-camera' }) %>

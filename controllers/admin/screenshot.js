@@ -65,6 +65,13 @@ export function createScreenshotController({
   }
 
   /**
+   * True when the admin left the whole-page box ticked.
+   */
+  function wantsWholePage(req) {
+    return Boolean(req.body?.fullPage);
+  }
+
+  /**
    * Renders the theme form again
    */
   function renderPage(req, res, errors, generatedFile) {
@@ -81,6 +88,7 @@ export function createScreenshotController({
         description: String(req.body?.description ?? ""),
         mode: "generate",
         captureUrl: String(req.body?.captureUrl ?? ""),
+        fullPage: wantsWholePage(req),
         generatedFile,
         themeId: theme ? String(theme.id) : "",
       },
@@ -118,7 +126,7 @@ export function createScreenshotController({
     const file = tempShots.pathOf(name);
 
     try {
-      await capture(checked.url, tempShots.dir, name);
+      await capture(checked.url, tempShots.dir, name, { fullPage: wantsWholePage(req) });
     } catch (error) {
       tempShots.remove(name);
       return refuse(req, res, error?.code ?? "engine");

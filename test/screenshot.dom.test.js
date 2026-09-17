@@ -15,6 +15,7 @@ const form = ({ required = true } = {}) => `
   </div>
   <div id="generate-panel" class="hidden">
     <input id="capture-url" name="captureUrl" type="url" value="https://aurora.test" />
+    <label><input id="capture-full-page" name="fullPage" type="checkbox" checked />Capture the whole page</label>
     <button id="generate-button" type="submit" formaction="/admin/themes/screenshot">Generate</button>
     <img id="capture-preview" class="drop-preview hidden" />
   </div>
@@ -124,6 +125,35 @@ describe("startScreenshot", () => {
     assert.equal(sent[0].options.body.get("mode"), "generate");
     assert.equal(sent[0].options.body.get("captureUrl"), "https://aurora.test");
     assert.equal(sent[0].options.body.get("image"), null);
+  });
+
+  it("sends the whole-page choice along with the address", async () => {
+    const sent = [];
+    const window = mount({
+      reply: { ok: true, generatedFile: "abc.png", preview: "/media/tmp/abc.png" },
+      sent,
+    });
+
+    window.document.getElementById("mode-generate").click();
+    window.document.getElementById("generate-button").click();
+    await settle();
+
+    assert.equal(sent[0].options.body.get("fullPage"), "on");
+  });
+
+  it("leaves the whole-page field out when the box is unticked", async () => {
+    const sent = [];
+    const window = mount({
+      reply: { ok: true, generatedFile: "abc.png", preview: "/media/tmp/abc.png" },
+      sent,
+    });
+
+    window.document.getElementById("mode-generate").click();
+    window.document.getElementById("capture-full-page").checked = false;
+    window.document.getElementById("generate-button").click();
+    await settle();
+
+    assert.equal(sent[0].options.body.get("fullPage"), null);
   });
 
   it("shows what went wrong and keeps the page", async () => {
