@@ -4,7 +4,7 @@
 
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { createCapture } from "../lib/screenshot.js";
+import { createCapture, lendErrorsNamespace } from "../lib/screenshot.js";
 import { createUrlGuard } from "../lib/safe-url.js";
 
 function replyWith(...steps) {
@@ -45,6 +45,7 @@ describe("createCapture", () => {
         name: "abc.png",
         width: 1280,
         height: 1024,
+        timeoutMs: 1000,
       },
     ]);
   });
@@ -131,6 +132,19 @@ describe("createCapture", () => {
     });
   });
 
+  it("hands the capture timeout to the browser", async () => {
+    const seen = [];
+    const capture = createCapture({
+      ...settings,
+      fetchImpl: replyWith({ status: 200 }),
+      shoot: async (options) => seen.push(options),
+    });
+
+    await capture("https://example.test/", "/tmp/dest", "abc.png");
+
+    assert.equal(seen[0].timeoutMs, 1000);
+  });
+
   it("reports a browser that will not run", async () => {
     const capture = createCapture({
       ...settings,
@@ -144,5 +158,26 @@ describe("createCapture", () => {
       assert.equal(error.code, "engine");
       return true;
     });
+  });
+});
+
+describe("lendErrorsNamespace", () => {
+  it("puts the timeout error where capture-website looks for it", () => {
+    class TimeoutError extends Error {}
+    const puppeteer = { default: {}, TimeoutError };
+
+    lendErrorsNamespace(puppeteer);
+
+    assert.equal(puppeteer.default.errors.TimeoutError, TimeoutError);
+  });
+
+  it("leaves an errors namespace the browser already provides alone", () => {
+    class TimeoutError extends Error {}
+    const theirs = { TimeoutError: class Other extends Error {} };
+    const puppeteer = { default: { errors: theirs }, TimeoutError };
+
+    lendErrorsNamespace(puppeteer);
+
+    assert.equal(puppeteer.default.errors, theirs);
   });
 });
