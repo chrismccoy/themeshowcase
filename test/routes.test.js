@@ -163,6 +163,7 @@ describe("GET /", () => {
       image: "/media/theme/1",
       url: "https://aurora.test",
       description: "",
+      pinned: false,
     });
   });
 

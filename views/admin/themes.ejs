@@ -22,6 +22,7 @@
             </tr>
           </thead>
           <tbody>
+            <% const pinnedCount = themes.filter(function (theme) { return theme.pinned; }).length; %>
             <% themes.forEach(function (theme, index) { %>
               <tr>
                 <% if (confirmId === Number(theme.id)) { %>
@@ -48,18 +49,27 @@
                   <td class="font-mono text-xs text-slate-500"><%= theme.url %></td>
                   <td class="text-center">
                     <span class="inline-flex gap-1">
-                      <form action="/admin/themes/<%= theme.id %>/move" method="post" class="inline">
+                      <% if (theme.pinned) { %>
+                        <form action="/admin/themes/<%= theme.id %>/move" method="post" class="inline">
+                          <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+                          <input type="hidden" name="direction" value="up" />
+                          <button type="submit" class="btn btn-quiet btn-sm" <%= index === 0 ? 'disabled' : '' %> aria-label="Move <%= theme.name %> up">
+                            <%- include('partials/icon', { name: 'fa-solid fa-arrow-up' }) %>
+                          </button>
+                        </form>
+                        <form action="/admin/themes/<%= theme.id %>/move" method="post" class="inline">
+                          <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+                          <input type="hidden" name="direction" value="down" />
+                          <button type="submit" class="btn btn-quiet btn-sm" <%= index === pinnedCount - 1 ? 'disabled' : '' %> aria-label="Move <%= theme.name %> down">
+                            <%- include('partials/icon', { name: 'fa-solid fa-arrow-down' }) %>
+                          </button>
+                        </form>
+                      <% } %>
+                      <form action="/admin/themes/<%= theme.id %>/pin" method="post" class="inline">
                         <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
-                        <input type="hidden" name="direction" value="up" />
-                        <button type="submit" class="btn btn-quiet btn-sm" <%= index === 0 ? 'disabled' : '' %> aria-label="Move <%= theme.name %> up">
-                          <%- include('partials/icon', { name: 'fa-solid fa-arrow-up' }) %>
-                        </button>
-                      </form>
-                      <form action="/admin/themes/<%= theme.id %>/move" method="post" class="inline">
-                        <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
-                        <input type="hidden" name="direction" value="down" />
-                        <button type="submit" class="btn btn-quiet btn-sm" <%= index === themes.length - 1 ? 'disabled' : '' %> aria-label="Move <%= theme.name %> down">
-                          <%- include('partials/icon', { name: 'fa-solid fa-arrow-down' }) %>
+                        <input type="hidden" name="pinned" value="<%= theme.pinned ? '0' : '1' %>" />
+                        <button type="submit" class="btn <%= theme.pinned ? 'btn-primary' : 'btn-quiet' %> btn-sm" aria-label="<%= theme.pinned ? 'Unpin' : 'Pin' %> <%= theme.name %>">
+                          <%- include('partials/icon', { name: 'fa-solid fa-thumbtack' }) %>
                         </button>
                       </form>
                     </span>

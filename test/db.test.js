@@ -24,7 +24,7 @@ describe("openDatabase", () => {
 
   it("records that the schema has been applied", () => {
     const db = openDatabase(":memory:");
-    assert.equal(db.pragma("user_version", { simple: true }), 2);
+    assert.equal(db.pragma("user_version", { simple: true }), 3);
   });
 
   it("gives themes a description column", () => {
@@ -43,6 +43,14 @@ describe("openDatabase", () => {
 
     assert.equal(db.prepare("SELECT description FROM themes WHERE id = 1").get().description, "");
 });
+
+  it("gives themes a pinned column that starts at zero", () => {
+    const db = openDatabase(":memory:");
+    const column = db.pragma("table_info(themes)").find((entry) => entry.name === "pinned");
+    assert.ok(column, "themes must have a pinned column");
+    assert.equal(column.notnull, 1);
+    assert.equal(column.dflt_value, "0");
+  });
 
   it("turns on foreign key checking, which SQLite leaves off by default", () => {
     const db = openDatabase(":memory:");
@@ -118,11 +126,20 @@ describe("openDatabase migrations", () => {
     return file;
   }
 
+  function version2() {
+    const file = version1();
+    const db = new Database(file);
+    db.exec("ALTER TABLE themes ADD COLUMN description TEXT NOT NULL DEFAULT ''");
+    db.pragma("user_version = 2");
+    db.close();
+    return file;
+  }
+
   it("adds the description column to a database that predates it", () => {
     const db = openDatabase(version1());
     const columns = db.pragma("table_info(themes)").map((column) => column.name);
     assert.ok(columns.includes("description"));
-    assert.equal(db.pragma("user_version", { simple: true }), 2);
+    assert.equal(db.pragma("user_version", { simple: true }), 3);
   });
 
   it("keeps every row that was already there", () => {
@@ -138,7 +155,21 @@ describe("openDatabase migrations", () => {
     const file = version1();
     openDatabase(file).close();
     const db = openDatabase(file);
-    assert.equal(db.pragma("user_version", { simple: true }), 2);
+    assert.equal(db.pragma("user_version", { simple: true }), 3);
     assert.equal(db.prepare("SELECT COUNT(*) AS count FROM themes").get().count, 1);
+  });
+
+  it("adds the pinned column to a version 2 database", () => {
+    const db = openDatabase(version2());
+    const columns = db.pragma("table_info(themes)").map((column) => column.name);
+    assert.ok(columns.includes("pinned"));
+    assert.equal(db.pragma("user_version", { simple: true }), 3);
+  });
+
+  it("leaves every existing theme unpinned", () => {
+    const db = openDatabase(version2());
+    const theme = db.prepare("SELECT title, pinned FROM themes").get();
+    assert.equal(theme.title, "Aurora");
+    assert.equal(theme.pinned, 0);
   });
 });

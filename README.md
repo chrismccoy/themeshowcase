@@ -18,5 +18,6 @@ A website for showing off WordPress themes. Visitors pick a theme from a list, s
 * Generating needs Chrome, which `npm install` fetches. Set `SCREENSHOT_ENABLED=false` where it cannot run, and the choice disappears from the form.
 * Deleting a theme deletes its screenshot file as well.
 * A category with themes cannot be deleted
-* Themes are put in order with up and down arrows, and that is the order visitors see.
+* Themes show newest first, so a new theme appears at the top of the list.
+* Pinning a theme with its thumbtack button keeps it above the rest. Pinned themes are put in order with up and down arrows, and unpinning returns a theme to date order.
 * The admin dashboard can be IP limited.

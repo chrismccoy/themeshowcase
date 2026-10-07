@@ -27,7 +27,7 @@ export function freshDb(entries = []) {
       entry.imageFile ?? `${entry.title.toLowerCase()}.png`,
       entry.description ?? "",
       index + 1,
-      "2026-01-01T00:00:00Z"
+      new Date(Date.UTC(2026, 0, entries.length - index)).toISOString()
     );
   });
 

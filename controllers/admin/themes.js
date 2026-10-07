@@ -283,5 +283,16 @@ export function createThemesController({
     return res.redirect("/admin/themes");
   }
 
-  return { list, newForm, create, editForm, update, remove, move };
+  /**
+   * Pins a theme above the rest, or returns it to date order.
+   */
+  function pin(req, res) {
+    const pinned = String(req.body?.pinned ?? "");
+    if (pinned === "1") themes.pin(req.params.id);
+    else if (pinned === "0") themes.unpin(req.params.id);
+
+    return res.redirect("/admin/themes");
+  }
+
+  return { list, newForm, create, editForm, update, remove, move, pin };
 }

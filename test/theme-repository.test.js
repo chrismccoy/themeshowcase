@@ -13,11 +13,41 @@ describe("createThemeRepository.list", () => {
     assert.deepEqual(themes.list(), []);
   });
 
-  it("returns every theme in position order", () => {
+  it("lists newest first when nothing is pinned", () => {
+    const db = freshDb(SAMPLE);
+    db.prepare("UPDATE themes SET created_at = '2027-01-01T00:00:00.000Z' WHERE id = 3").run();
+    const themes = createThemeRepository(db);
+    assert.deepEqual(
+      themes.list().map((theme) => theme.name),
+      ["Cinder", "Aurora", "Basalt"]
+    );
+  });
+
+  it("lists pinned themes first, in their own order, then the rest newest first", () => {
     const themes = createThemeRepository(freshDb(SAMPLE));
+    themes.pin(3);
+    assert.deepEqual(
+      themes.list().map((theme) => theme.name),
+      ["Cinder", "Aurora", "Basalt"]
+    );
+  });
+
+  it("ignores a stale position on an unpinned theme", () => {
+    const db = freshDb(SAMPLE);
+    db.prepare("UPDATE themes SET position = -5 WHERE id = 3").run();
+    const themes = createThemeRepository(db);
     assert.deepEqual(
       themes.list().map((theme) => theme.name),
       ["Aurora", "Basalt", "Cinder"]
+    );
+  });
+
+  it("says whether each theme is pinned", () => {
+    const themes = createThemeRepository(freshDb(SAMPLE));
+    themes.pin(2);
+    assert.deepEqual(
+      themes.list().map((theme) => [theme.name, theme.pinned]),
+      [["Basalt", true], ["Aurora", false], ["Cinder", false]]
     );
   });
 
@@ -30,14 +60,15 @@ describe("createThemeRepository.list", () => {
 
   it("shapes a row the way the front end expects", () => {
     const themes = createThemeRepository(freshDb(SAMPLE));
-    const [first] = themes.list();
-    assert.deepEqual(first, {
+    const aurora = themes.list().find((theme) => theme.id === "1");
+    assert.deepEqual(aurora, {
       id: "1",
       name: "Aurora",
       category: "Blog",
       image: "/media/theme/1",
       url: "https://aurora.test",
       description: "",
+      pinned: false,
     });
   });
 
@@ -80,16 +111,21 @@ describe("createThemeRepository writes", () => {
     return { themes: createThemeRepository(db), db };
   }
 
-  it("creates a theme at the end of the list", () => {
+  it("creates a theme at the top of the unpinned themes", () => {
     const { themes } = repo();
+    themes.pin(3);
     const id = themes.create({
       title: "Dune",
       url: "https://dune.test",
       categoryId: 1,
       imageFile: "dune.png",
     });
-    assert.equal(themes.list().at(-1).name, "Dune");
+    assert.deepEqual(
+      themes.list().map((theme) => theme.name),
+      ["Cinder", "Dune", "Aurora", "Basalt"]
+    );
     assert.equal(themes.findById(id).title, "Dune");
+    assert.equal(themes.findById(id).pinned, false);
   });
 
   it("gives a new theme a position after every existing one", () => {
@@ -224,47 +260,107 @@ describe("createThemeRepository descriptions", () => {
       categoryId: 1,
       description: "Bright and roomy.",
     });
-    assert.equal(themes.list()[0].description, "Bright and roomy.");
+    assert.equal(
+      themes.list().find((theme) => theme.id === "1").description,
+      "Bright and roomy."
+    );
+  });
+});
+
+describe("createThemeRepository pinning", () => {
+  const names = (themes) => themes.list().map((theme) => theme.name);
+
+  it("puts a newly pinned theme at the bottom of the pinned group", () => {
+    const themes = createThemeRepository(freshDb(SAMPLE));
+    themes.pin(3);
+    themes.pin(1);
+    assert.deepEqual(names(themes), ["Cinder", "Aurora", "Basalt"]);
+  });
+
+  it("keeps a pinned theme in place when it is pinned again", () => {
+    const themes = createThemeRepository(freshDb(SAMPLE));
+    themes.pin(3);
+    themes.pin(2);
+    themes.pin(3);
+    assert.deepEqual(names(themes), ["Cinder", "Basalt", "Aurora"]);
+  });
+
+  it("returns an unpinned theme to date order", () => {
+    const themes = createThemeRepository(freshDb(SAMPLE));
+    themes.pin(3);
+    themes.unpin(3);
+    assert.deepEqual(names(themes), ["Aurora", "Basalt", "Cinder"]);
+    assert.equal(themes.findById(3).pinned, false);
+  });
+
+  it("sends a re-pinned theme to the bottom of the pinned group, not its old place", () => {
+    const themes = createThemeRepository(freshDb(SAMPLE));
+    themes.pin(3);
+    themes.pin(2);
+    themes.unpin(3);
+    themes.pin(3);
+    assert.deepEqual(names(themes), ["Basalt", "Cinder", "Aurora"]);
+  });
+
+  it("does nothing for a theme that does not exist", () => {
+    const themes = createThemeRepository(freshDb(SAMPLE));
+    themes.pin(99);
+    themes.unpin(99);
+    assert.deepEqual(names(themes), ["Aurora", "Basalt", "Cinder"]);
+  });
+
+  it("does nothing for an identifier that is not a number", () => {
+    const themes = createThemeRepository(freshDb(SAMPLE));
+    assert.doesNotThrow(() => themes.pin("abc"));
+    assert.doesNotThrow(() => themes.unpin("abc"));
+    assert.deepEqual(names(themes), ["Aurora", "Basalt", "Cinder"]);
   });
 });
 
 describe("createThemeRepository reordering", () => {
   const names = (themes) => themes.list().map((theme) => theme.name);
 
-  it("moves a theme up", () => {
+  function pinnedRepo() {
     const themes = createThemeRepository(freshDb(SAMPLE));
+    themes.pin(1);
+    themes.pin(2);
+    themes.pin(3);
+    return themes;
+  }
+
+  it("moves a theme up", () => {
+    const themes = pinnedRepo();
     themes.moveUp(2);
     assert.deepEqual(names(themes), ["Basalt", "Aurora", "Cinder"]);
   });
 
   it("moves a theme down", () => {
-    const themes = createThemeRepository(freshDb(SAMPLE));
+    const themes = pinnedRepo();
     themes.moveDown(2);
     assert.deepEqual(names(themes), ["Aurora", "Cinder", "Basalt"]);
   });
 
   it("does nothing when the first is moved up", () => {
-    const themes = createThemeRepository(freshDb(SAMPLE));
+    const themes = pinnedRepo();
     themes.moveUp(1);
     assert.deepEqual(names(themes), ["Aurora", "Basalt", "Cinder"]);
   });
 
   it("does nothing when the last is moved down", () => {
-    const themes = createThemeRepository(freshDb(SAMPLE));
+    const themes = pinnedRepo();
     themes.moveDown(3);
     assert.deepEqual(names(themes), ["Aurora", "Basalt", "Cinder"]);
   });
 
   it("does nothing for a theme that does not exist", () => {
-    const themes = createThemeRepository(freshDb(SAMPLE));
+    const themes = pinnedRepo();
     themes.moveUp(99);
     themes.moveDown(99);
     assert.deepEqual(names(themes), ["Aurora", "Basalt", "Cinder"]);
   });
 
   it("still swaps neighbours when deleting has left gaps in the numbering", () => {
-    const db = freshDb(SAMPLE);
-    const themes = createThemeRepository(db);
+    const themes = pinnedRepo();
     themes.remove(2);
     assert.deepEqual(names(themes), ["Aurora", "Cinder"]);
     themes.moveUp(3);
@@ -272,12 +368,29 @@ describe("createThemeRepository reordering", () => {
   });
 
   it("survives a move repeated to the end and back", () => {
-    const themes = createThemeRepository(freshDb(SAMPLE));
+    const themes = pinnedRepo();
     themes.moveDown(1);
     themes.moveDown(1);
     assert.deepEqual(names(themes), ["Basalt", "Cinder", "Aurora"]);
     themes.moveUp(1);
     themes.moveUp(1);
     assert.deepEqual(names(themes), ["Aurora", "Basalt", "Cinder"]);
+  });
+
+  it("does nothing when an unpinned theme is moved", () => {
+    const themes = createThemeRepository(freshDb(SAMPLE));
+    themes.pin(3);
+    themes.moveUp(2);
+    themes.moveDown(2);
+    assert.deepEqual(names(themes), ["Cinder", "Aurora", "Basalt"]);
+  });
+
+  it("never swaps a pinned theme with an unpinned one", () => {
+    const themes = createThemeRepository(freshDb(SAMPLE));
+    themes.pin(3);
+    themes.pin(1);
+    themes.moveUp(3);
+    assert.deepEqual(names(themes), ["Cinder", "Aurora", "Basalt"]);
+    assert.equal(themes.findById(2).position, 2);
   });
 });

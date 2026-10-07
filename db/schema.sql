@@ -12,6 +12,7 @@ CREATE TABLE themes (
   image_file  TEXT    NOT NULL,
   description TEXT    NOT NULL DEFAULT '',
   position    INTEGER NOT NULL,
+  pinned      INTEGER NOT NULL DEFAULT 0,
   created_at  TEXT    NOT NULL
 );
 

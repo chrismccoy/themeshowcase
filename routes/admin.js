@@ -128,6 +128,7 @@ export function createAdminRouter({ config, themes, categories, capture }) {
   router.post("/themes/:id", requireAdmin(sessions), upload.middleware, themesController.update);
   router.post("/themes/:id/delete", requireAdmin(sessions), themesController.remove);
   router.post("/themes/:id/move", requireAdmin(sessions), themesController.move);
+  router.post("/themes/:id/pin", requireAdmin(sessions), themesController.pin);
 
   router.use(
     notFound("admin/not-found", (req) => ({ signedIn: isSignedIn(sessions, req), title: "Not found" }))

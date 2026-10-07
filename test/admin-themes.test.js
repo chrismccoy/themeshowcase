@@ -91,11 +91,51 @@ describe("GET /admin/themes", () => {
     assert.ok(res.text.includes("/media/theme/1"));
   });
 
-  it("offers an add button, edit links and move buttons", async () => {
+  it("offers an add button, edit links and pin buttons", async () => {
     const res = await get("/admin/themes").expect(200);
     assert.ok(res.text.includes('href="/admin/themes/new"'));
     assert.ok(res.text.includes('href="/admin/themes/1/edit"'));
-    assert.ok(res.text.includes("/admin/themes/1/move"));
+    assert.ok(res.text.includes('action="/admin/themes/1/pin"'));
+  });
+
+  it("gives a pinned row arrows and an unpin button", async () => {
+    themes.pin(1);
+    const res = await get("/admin/themes").expect(200);
+    const doc = new JSDOM(res.text).window.document;
+    assert.ok(doc.querySelector('[aria-label="Move Aurora up"]'));
+    assert.ok(doc.querySelector('[aria-label="Move Aurora down"]'));
+    assert.ok(doc.querySelector('[aria-label="Unpin Aurora"]'));
+    assert.equal(doc.querySelector('[aria-label="Pin Aurora"]'), null);
+  });
+
+  it("gives an unpinned row a pin button and no arrows", async () => {
+    themes.pin(1);
+    const res = await get("/admin/themes").expect(200);
+    const doc = new JSDOM(res.text).window.document;
+    assert.ok(doc.querySelector('[aria-label="Pin Basalt"]'));
+    assert.equal(doc.querySelector('[aria-label="Move Basalt up"]'), null);
+    assert.equal(doc.querySelector('[aria-label="Move Basalt down"]'), null);
+  });
+
+  it("disables the arrows at the ends of the pinned group", async () => {
+    themes.pin(1);
+    themes.pin(2);
+    const res = await get("/admin/themes").expect(200);
+    const doc = new JSDOM(res.text).window.document;
+    assert.ok(doc.querySelector('[aria-label="Move Aurora up"]').disabled);
+    assert.ok(!doc.querySelector('[aria-label="Move Aurora down"]').disabled);
+    assert.ok(!doc.querySelector('[aria-label="Move Basalt up"]').disabled);
+    assert.ok(doc.querySelector('[aria-label="Move Basalt down"]').disabled);
+  });
+
+  it("sends the opposite value on each pin button", async () => {
+    themes.pin(1);
+    const res = await get("/admin/themes").expect(200);
+    const doc = new JSDOM(res.text).window.document;
+    const value = (id) =>
+      doc.querySelector(`form[action="/admin/themes/${id}/pin"] input[name="pinned"]`).value;
+    assert.equal(value(1), "0");
+    assert.equal(value(2), "1");
   });
 
   it("turns one row into a confirm strip when asked", async () => {
@@ -345,7 +385,23 @@ describe("POST /admin/themes/:id/delete", () => {
   });
 });
 
+describe("GET /", () => {
+  it("shows pinned themes first and the rest newest first", async () => {
+    themes.pin(3);
+    const res = await request(app).get("/").expect(200);
+    const at = (name) => res.text.indexOf(name);
+    assert.ok(at("Cinder") < at("Aurora"), "pinned Cinder comes first");
+    assert.ok(at("Aurora") < at("Basalt"), "newer Aurora comes before Basalt");
+  });
+});
+
 describe("POST /admin/themes/:id/move", () => {
+  beforeEach(() => {
+    themes.pin(1);
+    themes.pin(2);
+    themes.pin(3);
+  });
+
   it("moves a theme up", async () => {
     await post("/admin/themes/2/move", { direction: "up" }).expect(302);
     assert.deepEqual(names(), ["Basalt", "Aurora", "Cinder"]);
@@ -366,6 +422,52 @@ describe("POST /admin/themes/:id/move", () => {
     await post("/admin/themes/2/move", { direction: "sideways" }).expect(302);
     assert.deepEqual(names(), ["Aurora", "Basalt", "Cinder"]);
   });
+
+  it("does nothing to a theme that is not pinned", async () => {
+    themes.unpin(2);
+    const before = names();
+    await post("/admin/themes/2/move", { direction: "up" }).expect(302);
+    assert.deepEqual(names(), before);
+  });
+});
+
+describe("POST /admin/themes/:id/pin", () => {
+  it("pins a theme", async () => {
+    await post("/admin/themes/3/pin", { pinned: "1" }).expect(302);
+    assert.deepEqual(names(), ["Cinder", "Aurora", "Basalt"]);
+  });
+
+  it("unpins a theme", async () => {
+    themes.pin(3);
+    await post("/admin/themes/3/pin", { pinned: "0" }).expect(302);
+    assert.deepEqual(names(), ["Aurora", "Basalt", "Cinder"]);
+  });
+
+  it("sends the admin back to the list", async () => {
+    const res = await post("/admin/themes/3/pin", { pinned: "1" }).expect(302);
+    assert.equal(res.headers.location, "/admin/themes");
+  });
+
+  it("ignores a value it does not know", async () => {
+    await post("/admin/themes/3/pin", { pinned: "yes" }).expect(302);
+    assert.deepEqual(names(), ["Aurora", "Basalt", "Cinder"]);
+  });
+
+  it("redirects for a theme that does not exist", async () => {
+    await post("/admin/themes/99/pin", { pinned: "1" }).expect(302);
+    await post("/admin/themes/abc/pin", { pinned: "1" }).expect(302);
+    assert.deepEqual(names(), ["Aurora", "Basalt", "Cinder"]);
+  });
+
+  it("refuses a request without a CSRF token", async () => {
+    await request(app)
+      .post("/admin/themes/3/pin")
+      .set("Cookie", cookies())
+      .type("form")
+      .send({ pinned: "1" })
+      .expect(403);
+    assert.deepEqual(names(), ["Aurora", "Basalt", "Cinder"]);
+  });
 });
 
 describe("the guard", () => {
@@ -380,6 +482,11 @@ describe("the guard", () => {
       .post("/admin/themes/1/move")
       .type("form")
       .send({ direction: "up" })
+      .expect(403);
+    await request(app)
+      .post("/admin/themes/3/pin")
+      .type("form")
+      .send({ pinned: "1" })
       .expect(403);
 
     assert.deepEqual(names(), ["Aurora", "Basalt", "Cinder"]);

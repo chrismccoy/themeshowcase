@@ -11,16 +11,21 @@ export function createThemeRepository(db) {
       " themes.title AS name," +
       " categories.name AS category," +
       " themes.url AS url," +
-      " themes.description AS description" +
+      " themes.description AS description," +
+      " themes.pinned AS pinned" +
       " FROM themes" +
       " JOIN categories ON categories.id = themes.category_id" +
-      " ORDER BY themes.position"
+      " ORDER BY themes.pinned DESC," +
+      " CASE WHEN themes.pinned = 1 THEN themes.position END," +
+      " themes.created_at DESC," +
+      " themes.id DESC"
   );
 
   const imageFileStatement = db.prepare("SELECT image_file FROM themes WHERE id = ?");
 
   const findStatement = db.prepare(
-    "SELECT id, title, url, category_id, image_file, description, position FROM themes WHERE id = ?"
+    "SELECT id, title, url, category_id, image_file, description, position, pinned" +
+      " FROM themes WHERE id = ?"
   );
   const nextPositionStatement = db.prepare(
     "SELECT COALESCE(MAX(position), 0) + 1 AS next FROM themes"
@@ -38,12 +43,18 @@ export function createThemeRepository(db) {
   );
   const deleteStatement = db.prepare("DELETE FROM themes WHERE id = ?");
   const neighbourAboveStatement = db.prepare(
-    "SELECT id, position FROM themes WHERE position < ? ORDER BY position DESC LIMIT 1"
+    "SELECT id, position FROM themes" +
+      " WHERE pinned = 1 AND position < ? ORDER BY position DESC LIMIT 1"
   );
   const neighbourBelowStatement = db.prepare(
-    "SELECT id, position FROM themes WHERE position > ? ORDER BY position ASC LIMIT 1"
+    "SELECT id, position FROM themes" +
+      " WHERE pinned = 1 AND position > ? ORDER BY position ASC LIMIT 1"
   );
   const setPositionStatement = db.prepare("UPDATE themes SET position = ? WHERE id = ?");
+  const pinStatement = db.prepare(
+    "UPDATE themes SET pinned = 1, position = ? WHERE id = ? AND pinned = 0"
+  );
+  const unpinStatement = db.prepare("UPDATE themes SET pinned = 0 WHERE id = ?");
 
   /**
    * Every listed theme
@@ -56,6 +67,7 @@ export function createThemeRepository(db) {
       image: `/media/theme/${row.id}`,
       url: row.url,
       description: row.description,
+      pinned: row.pinned === 1,
     }));
   }
 
@@ -86,6 +98,7 @@ export function createThemeRepository(db) {
       imageFile: row.image_file,
       description: row.description,
       position: row.position,
+      pinned: row.pinned === 1,
     };
   }
 
@@ -133,7 +146,7 @@ export function createThemeRepository(db) {
   function swapWith(neighbourStatement) {
     return db.transaction((id) => {
       const theme = findById(id);
-      if (!theme) return;
+      if (!theme || !theme.pinned) return;
 
       const neighbour = neighbourStatement.get(theme.position);
       if (!neighbour) return;
@@ -146,5 +159,24 @@ export function createThemeRepository(db) {
   const moveUp = swapWith(neighbourAboveStatement);
   const moveDown = swapWith(neighbourBelowStatement);
 
-  return { list, findImageFile, findById, create, update, remove, moveUp, moveDown };
+  /**
+   * Pins a theme to the bottom of the pinned group. A theme already pinned keeps its place.
+   */
+  const pin = db.transaction((id) => {
+    const numeric = Number(id);
+    if (!Number.isInteger(numeric)) return;
+    const { next } = nextPositionStatement.get();
+    pinStatement.run(next, numeric);
+  });
+
+  /**
+   * Returns a theme to date order.
+   */
+  function unpin(id) {
+    const numeric = Number(id);
+    if (!Number.isInteger(numeric)) return;
+    unpinStatement.run(numeric);
+  }
+
+  return { list, findImageFile, findById, create, update, remove, moveUp, moveDown, pin, unpin };
 }
